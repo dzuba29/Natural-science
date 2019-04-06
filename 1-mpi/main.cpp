@@ -1,18 +1,17 @@
 #include <mpi.h>
 #include <iostream>
-#include <cmath>
 #include <iomanip>
+#include <cmath>
+#include <algorithm>
 #include <unistd.h>
 
 double function(const double x, const double y)
-{ // правая часть уравнения
-
+{
     return 0;
 }
 
 double conditions(const double x, const double y)
-{ //краевые условия
-
+{
     if (x == 0)
         return 0;
     if (x == 1)
@@ -77,7 +76,7 @@ double **makeArray2D(size_t rows, size_t cols)
 
 void freeArray2D(double **array2D, size_t rows, size_t cols)
 {
-    delete[] &(array2D[0][0]);
+    delete[] & (array2D[0][0]);
     delete[] array2D;
 }
 
@@ -153,25 +152,33 @@ int main(int argc, char *argv[])
         sendcounts[i] = L;
     }
 
-    double **localMatrix = makeArray2D(M + 2, N + 2);
+    double **locMat = makeArray2D(M + 2, N + 2);
 
-    MPI_Scatterv(&(u[0][0]), sendcounts, displs, MPI_DOUBLE, &(localMatrix[0][0]), L, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    delete[] displs;
-    delete[] sendcounts;
-
-    if (ProcRank == 1)
+    double u0, delta;
+    double *deltaArray = new double[M * N];
+    do
     {
-        std::cout << "ProcRank: " << ProcRank << std::endl;
-        print2D(localMatrix, M + 2, N + 2);
-    }
+        MPI_Scatterv(&(u[0][0]), sendcounts, displs, MPI_DOUBLE, &(locMat[0][0]), L, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Calculate
+        // Calculate
+        for (size_t i = 1; i < M + 1; i++)
+            for (size_t j = 1; j < N + 1; j++)
+            {
+                u0 = locMat[i][j];
+                locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]); // - h * h * f[i - 1][j - 1]);
+                deltaArray[i * M + j] = std::fabs(locMat[i][j] - u0);
+            }
 
+        delta = *std::max_element(deltaArray, deltaArray + M * N);
 
+        MPI_Gatherv(&(locMat[0][0]),L,MPI_DOUBLE, &(u[0][0]), sendcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    } while (false);
 
     // Clean memory
-    freeArray2D(localMatrix, M + 2, N + 2);
+    delete[] displs;
+    delete[] sendcounts;
+    freeArray2D(locMat, M + 2, N + 2);
     freeArray2D(f, N, N);
     freeArray2D(u, N + 2, N + 2);
 
