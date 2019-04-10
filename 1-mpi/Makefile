@@ -3,7 +3,7 @@ TARGET=mpi-1
 N_PROC=4
 N=8
 
-default: $(TARGET) run
+default: $(TARGET)
 
 $(TARGET): clean
 	mpic++ main.cpp -o $@
