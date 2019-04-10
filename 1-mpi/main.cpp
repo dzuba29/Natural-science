@@ -184,8 +184,7 @@ int main(int argc, char *argv[])
 
         MPI_Gatherv(&(locMat[0][0]) + (N + 2), sendcounts_Gatherv[0], MPI_DOUBLE, &(u[0][0]), sendcounts_Gatherv, displs_Gatherv, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        MPI_Reduce(&lMax, &dMax, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&dMax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Allreduce(&lMax,&dMax,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD)
 
         MPI_Barrier(MPI_COMM_WORLD);
     } while (dMax > eps);
