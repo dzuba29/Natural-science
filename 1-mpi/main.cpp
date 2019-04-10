@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 
     DEBUG_FILE << "displs: ";
     for (size_t i = 0; i < ProcSize; i++)
-        DEBUG_FILE << displs[i] << " ";
+        DEBUG_FILE << displs[i] << "(" << displs[i]/(N + 2) << ") ";
     DEBUG_FILE << std::endl;
 
     int iter = 1;
@@ -222,9 +222,8 @@ int main(int argc, char *argv[])
         MPI_Reduce(&delta, &dMax, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
         MPI_Bcast(&dMax, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Gatherv(&(locMat[0][0]), L, MPI_DOUBLE, &(u[0][0]), sendcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        DEBUG_FILE << "_3_\n";
-
-        DEBUG_FILE << "Matrix U after MPI_Gatherv:\n";
+ 
+        DEBUG_FILE << "_3_ Matrix U after MPI_Gatherv:\n";
         for (size_t i = 0; i < N + 2; i++)
         {
             for (size_t j = 0; j < N + 2; j++)
