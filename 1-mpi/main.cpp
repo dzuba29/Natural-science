@@ -94,7 +94,7 @@ void print2D(double **array2D, size_t rows, size_t cols)
 void toFile(double **array2D, size_t rows, size_t cols)
 {
     std::ofstream outStream("result.txt", std::ios_base::out);
-    outStream << rows << " " << cols << std::endl;
+    // outStream << rows << " " << cols << std::endl;
     for (size_t i = 0; i < rows; ++i)
     {
         for (size_t j = 0; j < cols; ++j)
