@@ -43,23 +43,23 @@ void first_approx_f(double **matrix, const size_t size, const double h)
 
 void first_approx_u(double **matrix, const size_t size, const double h)
 {
-    for (size_t i = 1; i < size + 1; ++i)
-    {
-        matrix[i][0] = conditions(i * h, 0);
-        matrix[i][size + 1] = conditions(i * h, (size + 1) * h);
-    }
-    for (size_t j = 0; j < size + 2; ++j)
-    {
-        matrix[0][j] = conditions(0, j * h);
-        matrix[size + 1][j] = conditions((size + 1) * h, j * h);
-    }
-    // for (size_t i = 0; i < size + 2; ++i)
+    // for (size_t i = 1; i < size + 1; ++i)
     // {
-    //     for (size_t j = 0; j < size + 2; ++j)
-    //     {
-    //         matrix[i][j] = i;
-    //     }
+    //     matrix[i][0] = conditions(i * h, 0);
+    //     matrix[i][size + 1] = conditions(i * h, (size + 1) * h);
     // }
+    // for (size_t j = 0; j < size + 2; ++j)
+    // {
+    //     matrix[0][j] = conditions(0, j * h);
+    //     matrix[size + 1][j] = conditions((size + 1) * h, j * h);
+    // }
+    for (size_t i = 0; i < size + 2; ++i)
+    {
+        for (size_t j = 0; j < size + 2; ++j)
+        {
+            matrix[i][j] = i;
+        }
+    }
 }
 
 double **makeArray2D(size_t rows, size_t cols)
@@ -213,7 +213,8 @@ int main(int argc, char *argv[])
             for (size_t j = 1; j < N + 1; j++)
             {
                 u0 = locMat[i][j];
-                locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]); // - h * h * f[i - 1][j - 1]);
+                //locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]); // - h * h * f[i - 1][j - 1]);
+                locMat[i][j] = -1;
                 delta = std::max(std::fabs(u0 - locMat[i][j]), delta);
             }
         DEBUG_FILE << "_2_\n";
@@ -232,21 +233,29 @@ int main(int argc, char *argv[])
             }
             DEBUG_FILE << std::endl;
         }
+
         DEBUG_FILE << "_4_ MPI_Barrier\n";
-        MPI_Barrier(MPI_COMM_WORLD);
+        // MPI_Barrier(MPI_COMM_WORLD);
         DEBUG_FILE << "_5_\n";
         iter++;
     } while (false);
-    DEBUG_FILE << "Clean mermory... " << std::endl;
+
+    DEBUG_FILE << "Clean mermory...\n";
     // Clean memoryp
     delete[] displs;
+    DEBUG_FILE << " displs\n";
     delete[] sendcounts;
+    DEBUG_FILE << " sendcounts\n";
     freeArray2D(locMat, M + 2, N + 2);
+    DEBUG_FILE << " locMat\n";
     freeArray2D(f, N, N);
+    DEBUG_FILE << " f\n";
     freeArray2D(u, N + 2, N + 2);
+    DEBUG_FILE << " u\n";
 
     MPI_Finalize();
 
     //ToCSV(u, N + 2, N + 2);
+    DEBUG_FILE << "END!!!\n";
     return 0;
 }
