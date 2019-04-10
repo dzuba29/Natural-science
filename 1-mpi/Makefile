@@ -12,4 +12,6 @@ clean:
 	rm -f $(TARGET)
 
 run:
-	mpirun -np $(N_PROC) $(TARGET) -n $(N)
+	mpirun -np $(N_PROC) $(TARGET) 
+
+#-n $(N)
