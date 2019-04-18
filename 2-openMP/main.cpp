@@ -14,28 +14,42 @@ double fi(double x, double y)
 
 double conditions(double x, double y, double t)
 {
-    return pow(x,2)-pow(y,2);
+    return pow(x, 2) - pow(y, 2);
 }
 
-double fillCondi(double **u, size_t X, size_t Y, double t)
+double first_cond_u(double **u, size_t X, size_t Y, double t)
+{
+    double hX = 1.0 / X;
+    double hY = 1.0 / Y;
+#pragma omp parallel
+    {
+#pragma omp for
+
+        for (size_t i = 1; i < Y - 1; i++)
+        {
+            u[i][0] = conditions(0, i * hY, t);
+            u[i][X - 1] = conditions(1, i * hY, t);
+        }
+#pragma omp for
+        for (size_t i = 0; i < X; i++)
+        {
+            u[0][i] = conditions(i * hX, 0, t);
+            u[Y - 1][i] = conditions(i * hX, 1, t);
+        }
+    }
+}
+
+double first_st_u(double **u, size_t X, size_t Y)
 {
     double hX = 1.0 / X;
     double hY = 1.0 / Y;
 #pragma omp parallel for
     for (size_t i = 1; i < Y - 1; i++)
-    {
-        u[i][0] = conditions(0, i * hY, t);
-        u[i][X - 1] = conditions(1, i * hY, t);
-    }
-#pragma omp parallel for
-    for (size_t i = 0; i < X; i++)
-    {
-        u[0][i] = conditions(i * hX, 0, t);
-        u[Y - 1][i] = conditions(i * hX, 1, t);
-    }
+        for (size_t j = 1; j < X - 1; j++)
+            u[i][j] = fi(j * hX, i * hY);
 }
 
-void makeCSV(double **u, size_t X, size_t Y, double t, size_t N)
+void toCSV(double **u, size_t X, size_t Y, double t, size_t N)
 {
     std::ofstream outStream("res/" + std::to_string(N) + ".txt", std::ios_base::out);
     outStream << t << "\n";
@@ -101,12 +115,12 @@ int main(int argc, char *argv[])
     /*Выделение памяти под трехмерный массив u(t,x,y), где первая размерность указывает на время, т.е 
     в каждый момент времени t мы будем хранить расчитанную сетку X на Y, где каждая точка соотвествует температуре
     */
-    double ***cube = new double **[nT + 1];
+    double ***u = new double **[nT + 1];
     for (size_t iT = 0; iT < nT + 1; iT++)
     {
-        cube[iT] = new double *[Y];
+        u[iT] = new double *[Y];
         for (size_t i = 0; i < Y; i++)
-            cube[iT][i] = new double[X];
+            u[iT][i] = new double[X];
     }
 
     double t = (double)T / (double)nT; //отрезок времени
@@ -123,14 +137,9 @@ int main(int argc, char *argv[])
 
     auto begTime = std::chrono::steady_clock::now();
 
-    // Начальное условие
-#pragma omp parallel for
-    for (size_t i = 1; i < Y - 1; i++)
-        for (size_t j = 1; j < X - 1; j++)
-            cube[0][i][j] = fi(j * hX, i * hY); //заполнение в 0 момент времени начальных условий
 
-    // Граничные условия
-    fillCondi(cube[0], X, Y, 0); //заполнение граничных условий в 0 момент времени
+    first_st_u(u[0], X, Y);      //заполнение в 0 момент времени начальных условий
+    first_cond_u(u[0], X, Y, 0); //заполнение граничных условий в 0 момент времени
 
     for (size_t iT = 1; iT < nT + 1; iT++)
     {
@@ -143,10 +152,10 @@ int main(int argc, char *argv[])
                 под 2.78
                 в iT момент времени 
                 */
-                cube[iT][i][j] = c * cube[iT - 1][i][j] + l1 * (cube[iT - 1][i][j + 1] + cube[iT - 1][i][j - 1]) + l2 * (cube[iT - 1][i + 1][j] + cube[iT - 1][i - 1][j]);
+                u[iT][i][j] = c * u[iT - 1][i][j] + l1 * (u[iT - 1][i][j + 1] + u[iT - 1][i][j - 1]) + l2 * (u[iT - 1][i + 1][j] + u[iT - 1][i - 1][j]);
 
         // Пересчет граничных условий в iT момент времени
-        fillCondi(cube[iT], X, Y, t * iT);
+        first_cond_u(u[iT], X, Y, t * iT);
     }
 
     double calc_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - begTime).count();
@@ -160,7 +169,7 @@ int main(int argc, char *argv[])
         std::experimental::filesystem::create_directory("res");
         for (size_t iT = 0; iT < nT + 1; iT++)
         {
-            makeCSV(cube[iT], X, Y, t * iT, iT);
+            toCSV(u[iT], X, Y, t * iT, iT);
         }
     }
 
@@ -168,10 +177,10 @@ int main(int argc, char *argv[])
     for (size_t iT = 0; iT < nT + 1; iT++)
     {
         for (size_t i = 0; i < Y; i++)
-            delete[] cube[iT][i];
-        delete[] cube[iT];
+            delete[] u[iT][i];
+        delete[] u[iT];
     }
-    delete[] cube;
+    delete[] u;
 
     return 0;
 }
