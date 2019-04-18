@@ -9,7 +9,7 @@ import argparse
 def surface(data, file):
     Z = np.array(data)
     X = np.arange(0, 1, 1.0 / Z.shape[1])
-    Y = np.arange(0, 1, 1.0 / Z.shape[1])
+    Y = np.arange(0, 1, 1.0 / Z.shape[0])
     X2D, Y2D = np.meshgrid(X, Y)
     fig = plt.figure()
     ax = Axes3D(fig)

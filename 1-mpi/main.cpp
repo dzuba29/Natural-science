@@ -13,16 +13,15 @@ double function(const double x, const double y)
 
 double conditions(const double x, const double y)
 {
-    // return (y - 0.5) * (y - 0.5) + (x - 0.5) * (x - 0.5);
-
-    if (x == 0)
-        return 1 - 2 * y;
-    if (x == 1)
-        return -1 + 2 * y;
-    if (y == 0)
-        return 1 - 2 * x;
-    if (y == 1)
-        return -1 + 2 * x;
+    double e = 0.0000000001;
+    if (1-e <= y && 1+e >= y)
+        return x;
+    if (1-e <= x && 1+e >= x)
+        return y*y;
+    if (-e <= y && e >= y)
+        return 0;
+    if (-e <= x && e >= x)
+        return 0;
 }
 
 double step(const size_t size)
@@ -46,20 +45,13 @@ void first_approx_u(double **matrix, const size_t size, const double h)
     for (size_t i = 1; i < size + 1; ++i)
     {
         matrix[i][0] = conditions(i * h, 0);
-        matrix[i][size + 1] = conditions(i * h, (size + 1) * h);
+        matrix[i][size + 1] = conditions(i * h, 1);
     }
     for (size_t j = 0; j < size + 2; ++j)
     {
         matrix[0][j] = conditions(0, j * h);
-        matrix[size + 1][j] = conditions((size + 1) * h, j * h);
+        matrix[size + 1][j] = conditions(1, j * h);
     }
-    // for (size_t i = 0; i < size + 2; ++i)
-    // {
-    //     for (size_t j = 0; j < size + 2; ++j)
-    //     {
-    //         matrix[i][j] = i;
-    //     }
-    // }
 }
 
 double **makeArray2D(size_t rows, size_t cols)
@@ -124,6 +116,7 @@ int main(int argc, char *argv[])
         case 'n':
         {
             N = std::atoi(optarg);
+            h = step(N);
             break;
         }
         case 'e':
@@ -141,15 +134,10 @@ int main(int argc, char *argv[])
 
     std::ofstream DEBUG_FILE("out-" + std::to_string(ProcRank) + ".txt", std::ios_base::out);
 
-    double **f = 0;
-    double **u = 0;
-
-    f = makeArray2D(N, N);
-    u = makeArray2D(N + 2, N + 2);
+    double **u = makeArray2D(N + 2, N + 2);
 
     if (ProcRank == 0)
     {
-        first_approx_f(f, N, h);
         first_approx_u(u, N, h);
     }
 
@@ -178,7 +166,7 @@ int main(int argc, char *argv[])
             for (size_t j = 1; j < N + 1; j++)
             {
                 u0 = locMat[i][j];
-                locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]); // - h * h * f[i - 1][j - 1]);
+                locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]);
                 lMax = std::max(std::fabs(u0 - locMat[i][j]), lMax);
             }
 
@@ -197,7 +185,6 @@ int main(int argc, char *argv[])
     delete[] sendcounts_Scatterv;
     delete[] sendcounts_Gatherv;
     freeArray2D(locMat, M + 2, N + 2);
-    freeArray2D(f, N, N);
     freeArray2D(u, N + 2, N + 2);
 
     MPI_Finalize();
