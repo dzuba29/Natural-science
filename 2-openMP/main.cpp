@@ -5,23 +5,16 @@
 #include <experimental/filesystem>
 #include <unistd.h>
 #include <omp.h>
+#include <cmath>
 
 double fi(double x, double y)
 {
-    return x * y * 0.2;
+    return 0;
 }
 
 double conditions(double x, double y, double t)
 {
-    double e = 0.0000000001;
-    if (1 - e <= y && 1 + e >= y)
-        return x;
-    if (1 - e <= x && 1 + e >= x)
-        return y * y;
-    if (-e <= y && e >= y)
-        return 0;
-    if (-e <= x && e >= x)
-        return 0;
+    return pow(x,2)-pow(y,2);
 }
 
 double fillCondi(double **u, size_t X, size_t Y, double t)
