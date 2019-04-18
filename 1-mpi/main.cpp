@@ -29,7 +29,7 @@ double step(const size_t size) //расчет шага сетки
     return 1.0 / (size + 1.0);
 }
 
-void first_approx_f(double **matrix, const size_t size, const double h) //первое приближение для f 
+void first_approx_f(double **matrix, const size_t size, const double h) //первое приближение для f
 {
     for (size_t i = 0; i < size; ++i)
     {
@@ -101,7 +101,10 @@ void toFile(double **array2D, size_t rows, size_t cols)
 }
 
 int main(int argc, char *argv[])
-{
+{   
+    /*
+    После MPI_Init(); каждый узел выполняет то что написано в int main(), если не написано ProcRank == 0 или чему еще.
+    */
     MPI_Init(&argc, &argv);
     int ProcRank, ProcSize;
     size_t N = 1000;     //размер сетки
@@ -141,18 +144,19 @@ int main(int argc, char *argv[])
         first_approx_u(u, N, h); //заполнение начальными значениями на 0 ранге процессоров(на мастере)
     }
 
-    const int M = N / ProcSize;               //количество отправлямых строк матрицы u на 1 узел кластера
-    int *displs_Scatterv = new int[ProcSize]; //смещение для отправляемых строк
-    int *displs_Gatherv = new int[ProcSize];  // смещение для принимаемых строк
-    int *sendcounts_Scatterv = new int[ProcSize];
-    int *sendcounts_Gatherv = new int[ProcSize];
+    const int M = N / ProcSize;                   //количество отправлямых строк матрицы u на 1 узел кластера
+    int *displs_Scatterv = new int[ProcSize];     //смещение для отправляемых строк
+    int *displs_Gatherv = new int[ProcSize];      //смещение для принимаемых строк
+    int *sendcounts_Scatterv = new int[ProcSize]; //кол-во отправляемых строк из матрицы u каждому узлу
+    int *sendcounts_Gatherv = new int[ProcSize];  // кол-во принимаемых строк с каждого узла в матриу u
+
     for (size_t i = 0; i < ProcSize; i++)
     {
-        displs_Scatterv[i] = i * M * (N + 2); //расчет смещения для отправки лент из матрицы u
+        displs_Scatterv[i] = i * M * (N + 2);       //расчет смещения для отправки лент из матрицы u
         sendcounts_Scatterv[i] = (M + 2) * (N + 2); //расчет кол-ва отправляемых строк в ленте из матрицы u
 
         displs_Gatherv[i] = i * M * (N + 2) + (N + 2); //расчет смещения для принимаемых лент в матрицу u
-        sendcounts_Gatherv[i] = M * (N + 2); //расчет кол-ва принимаемых строк в ленте в матрицу u
+        sendcounts_Gatherv[i] = M * (N + 2);           //расчет кол-ва принимаемых строк в ленте в матрицу u
     }
     //в sendcounts_Scatterv и sendcounts_Gatherv разные формулы т.к если оставить их одинаковыми, то при сборе результата(Gatherv) мы будем получать неверную матрицу
     double **locMat = makeArray2D(M + 2, N + 2); //выделение памяти под локальный массив в котором будут храниться отправленные строки
@@ -170,21 +174,20 @@ int main(int argc, char *argv[])
         for (size_t i = 1; i < M + 1; i++)
             for (size_t j = 1; j < N + 1; j++)
             {
-                u0 = locMat[i][j]; //буффер для предидущей итерации
+                u0 = locMat[i][j];                                                                                 //буффер для предыдущей итерации
                 locMat[i][j] = 0.25 * (locMat[i - 1][j] + locMat[i + 1][j] + locMat[i][j - 1] + locMat[i][j + 1]); //расчет по формуле
-                lMax = std::max(std::fabs(u0 - locMat[i][j]), lMax); //расчет локального максимума на каждом узле
+                lMax = std::max(std::fabs(u0 - locMat[i][j]), lMax);                                               //расчет локального максимума на каждом узле
             }
-         /*
+        /*
         Gatherv собирает все ленты с каждого узла в матрицу  u u со смещением displs_Gatherv и количеством sendcounts_Gatherv строки
         */
 
         MPI_Gatherv(&(locMat[0][0]) + (N + 2), sendcounts_Gatherv[0], MPI_DOUBLE, &(u[0][0]), sendcounts_Gatherv, displs_Gatherv, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-        
         MPI_Allreduce(&lMax, &dMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //Сравнивает все локальные максимумы с глобальным и если lMax > dMax, то dMax=lMax, отправляет всем узлам dMax
 
-        MPI_Barrier(MPI_COMM_WORLD); // Синхронизация процессов чтобы они все получили и сравнили свои локальные максимумы с глобальными 
-    } while (dMax > eps); //критерий останова, расчеты будут выполнятся до тех пор пока дельта между глобальным максимумом и локальным не будет превышать точность
+        MPI_Barrier(MPI_COMM_WORLD); // Синхронизация процессов чтобы они все получили и сравнили свои локальные максимумы с глобальными
+    } while (dMax > eps);            //критерий останова, расчеты будут выполнятся до тех пор пока дельта между глобальным максимумом и локальным не будет превышать точность
 
     if (ProcRank == 0)
         toFile(u, N + 2, N + 2); // запись в файл на главном узле(мастере)
