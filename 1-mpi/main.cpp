@@ -13,7 +13,7 @@ double function(const double x, const double y)
 
 double conditions(const double x, const double y)
 {
-    double e = 0.00001;
+    double e = 0.0000000001;
     if (1-e <= y && 1+e >= y)
         return x;
     if (1-e <= x && 1+e >= x)

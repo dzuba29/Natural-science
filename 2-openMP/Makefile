@@ -1,6 +1,7 @@
-COMPILER = mpic++
+COMPILER = g++
 
-FLAGS = -std=c++0x -fopenmp 
+FLAGS = -std=c++17 -fopenmp
+LIBS = -lstdc++fs
 
 #-Wall -Wextra -Wpedantic
 
@@ -19,7 +20,7 @@ endif
 default: all
 
 all:
-	$(COMPILER) $(FLAGS) main.cpp -o main
+	$(COMPILER) $(FLAGS) main.cpp -o main $(LIBS)
 
 clean:
 	$(RM) *.o main
