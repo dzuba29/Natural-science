@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 
     std::ofstream DEBUG_FILE("out-" + std::to_string(ProcRank) + ".txt", std::ios_base::out);
 
-    double **u = makeArray2D(N + 2, N + 2); //выделение памяти под апроксемирующую матрицу u
+    double **u = makeArray2D(N + 2, N + 2); //выделение памяти под аппроксимирующую матрицу u
 
     if (ProcRank == 0)
     {
