@@ -101,7 +101,7 @@ void toFile(double **array2D, size_t rows, size_t cols)
 }
 
 int main(int argc, char *argv[])
-{   
+{
     /*
     После MPI_Init(); каждый узел выполняет то что написано в int main(), если не написано ProcRank == 0 или чему еще.
     */

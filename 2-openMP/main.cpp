@@ -64,10 +64,10 @@ void makeCSV(double **u, size_t X, size_t Y, double t, size_t N)
 
 int main(int argc, char *argv[])
 {
-    size_t T = 1;
-    size_t nT = 10;
-    size_t X = 100;
-    size_t Y = 100;
+    size_t T = 1; //время у.е. 
+    size_t nT = 10; //кол-во моментов во времени
+    size_t X = 100; //размер сетки по X
+    size_t Y = 100; //размер сетки по Y
     bool write_file = false;
 
     int opt;
@@ -105,10 +105,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    double hX = 1.0 / X;
-    double hY = 1.0 / Y;
+    double hX = 1.0 / X; //шаг для сетки X
+    double hY = 1.0 / Y; //шаг для сетки Y
 
-    // Выделение памяти
+    /*Выделение памяти под трехмерный массив u(t,x,y), где первая размерность указывает на время, т.е 
+    в каждый момент времени t мы будем хранить расчитанную сетку X на Y, где каждая точка соотвествует температуре
+    */ 
     double ***cube = new double **[nT + 1];
     for (size_t iT = 0; iT < nT + 1; iT++)
     {
@@ -117,10 +119,10 @@ int main(int argc, char *argv[])
             cube[iT][i] = new double[X];
     }
 
-    double t = (double)T / (double)nT;
-    double l1 = t / (hX * hX);
-    double l2 = t / (hY * hY);
-    double c = 1 - 2 * (l1 + l2);
+    double t = (double)T / (double)nT; //отрезок времени
+    double l1 = t / (hX * hX); //коэф лямбда1 из формулы 
+    double l2 = t / (hY * hY); //коэф лямбда2 из формулы 
+    double c = 1 - 2 * (l1 + l2); //сократили запись(формула)
 
     // Условие устойчивости
     if (l1 + l2 > 0.5)
@@ -132,23 +134,30 @@ int main(int argc, char *argv[])
     auto begTime = std::chrono::steady_clock::now();
 
     // Начальное условие
-#pragma omp parallel for
+#pragma omp parallel for 
     for (size_t i = 1; i < Y - 1; i++)
         for (size_t j = 1; j < X - 1; j++)
-            cube[0][i][j] = fi(j * hX, i * hY);
+            cube[0][i][j] = fi(j * hX, i * hY); //заполнение в 0 момент времени начальных условий
 
     // Граничные условия
-    fillCondi(cube[0], X, Y, 0);
+    fillCondi(cube[0], X, Y, 0); //заполнение граничных условий в 0 момент времени
 
     for (size_t iT = 1; iT < nT + 1; iT++)
     {
-#pragma omp parallel for
+#pragma omp parallel for 
         for (size_t i = 1; i < Y - 1; i++)
             for (size_t j = 1; j < X - 1; j++)
+                /*
+                Расчет по формуле 
+                https://3ys.ru/metody-resheniya-differentsialnykh-uravnenij/uravnenie-teploprovodnosti.html
+                под 2.78
+                в iT момент времени 
+                */ 
                 cube[iT][i][j] = c * cube[iT - 1][i][j] + l1 * (cube[iT - 1][i][j + 1] + cube[iT - 1][i][j - 1]) + l2 * (cube[iT - 1][i + 1][j] + cube[iT - 1][i - 1][j]);
 
-        // Граничные условия
-        fillCondi(cube[iT], X, Y, t * iT);
+        // Пересчет граничных условий в iT момент времени
+        fillCondi(cube[iT], X, Y, t * iT); 
+
     }
 
     double calc_time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - begTime).count();
