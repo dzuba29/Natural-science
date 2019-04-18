@@ -1,6 +1,6 @@
 #!/bin/bash
 
-omp_threads=4
+omp_threads=2
 t=1
 n=10000
 X=50

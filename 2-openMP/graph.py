@@ -1,4 +1,5 @@
 import glob
+import math
 import os
 import shutil
 
@@ -35,7 +36,9 @@ os.mkdir("plots")
 
 n = len(glob.glob("res/*.txt"))
 
-for i in range(0, n):
+for i in range(0, 100):
+    p = i/(n-1) * 100
+    print(f"{p}%")
     with open('res/'+str(i)+'.txt') as f:
         time = f.readline()
         data = pd.read_csv('res/'+str(i)+'.txt', sep=' ',
@@ -44,7 +47,8 @@ for i in range(0, n):
 
 print("make gif...")
 
+# n = len(glob.glob("plots/*.png"))
 images = []
-for i in range(0, n):
-	images.append(imageio.imread('plots/'+str(i)+'.png'))
-imageio.mimsave('plots/movie.gif', images, duration=0.3)
+for i in range(0, 100):
+    images.append(imageio.imread('plots/'+str(i)+'.png'))
+imageio.mimsave('plots/movie.gif', images, duration=0.1)
