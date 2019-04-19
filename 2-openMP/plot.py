@@ -48,3 +48,9 @@ if __name__ == "__main__":
             time = f.readline()
             data = pd.read_csv(res[i], sep=' ', skiprows=1, header=None)
             surface(data, 'plots/'+str(i), time)
+
+    n = len(glob.glob("plots/*.png"))
+    images = []
+    for idx,item in enumerate(sorted(n)):
+        images.append(imageio.imread('plots/'+str(idx)+'.png'))
+    imageio.mimsave('plots/movie.gif', images, duration=0.5)
