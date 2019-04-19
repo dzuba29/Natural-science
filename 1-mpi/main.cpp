@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <fstream>
 
-double function(const double x, const double y) //наш оператор Лапласа, нулевой лол
+double function(const double x, const double y) //наш оператор Лапласа, нулевой 
 {
     return 0;
 }
